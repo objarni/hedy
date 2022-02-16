@@ -843,9 +843,9 @@ function runPythonProgram(this: any, code: string, hasTurtle: boolean, hasSleep:
 
   const outputDiv = $('#output');
   outputDiv.empty();
+  Sk.pre = "output";
 
   if (hasTurtle) {
-    Sk.pre = "output";
     const turtleConfig = (Sk.TurtleGraphics || (Sk.TurtleGraphics = {}));
     turtleConfig.target = 'turtlecanvas';
     // If the adventures are not shown -> increase height of turtleConfig
@@ -880,7 +880,7 @@ function runPythonProgram(this: any, code: string, hasTurtle: boolean, hasSleep:
     // This function can be customized later to yield different timeouts for different levels.
     execLimit: (function () {
       // const level = window.State.level;
-      return ((hasTurtle || hasSleep) ? 20000 : 3000);
+      return ((hasTurtle || hasSleep) ? 10000 : 3000);
     }) ()
   });
 
