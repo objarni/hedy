@@ -870,6 +870,8 @@ function runPythonProgram(this: any, code: string, hasTurtle: boolean, hasSleep:
     output: outf,
     read: builtinRead,
     inputfun: inputFromInlineModal,
+    killableWhile: true,
+    killableFor: true,
     inputfunTakesPrompt: true,
     __future__: Sk.python3,
     timeoutMsg: function () {
