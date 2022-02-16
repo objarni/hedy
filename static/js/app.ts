@@ -844,28 +844,26 @@ function runPythonProgram(this: any, code: string, hasTurtle: boolean, hasSleep:
   const outputDiv = $('#output');
   outputDiv.empty();
 
-  Sk.pre = "output";
-  const turtleConfig = (Sk.TurtleGraphics || (Sk.TurtleGraphics = {}));
-  turtleConfig.target = 'turtlecanvas';
-  // If the adventures are not shown -> increase height of turtleConfig
-  if ($('#adventures').is(":hidden")) {
+  if (hasTurtle) {
+    Sk.pre = "output";
+    const turtleConfig = (Sk.TurtleGraphics || (Sk.TurtleGraphics = {}));
+    turtleConfig.target = 'turtlecanvas';
+    // If the adventures are not shown -> increase height of turtleConfig
+    if ($('#adventures').is(":hidden")) {
       turtleConfig.height = 600;
       turtleConfig.worldHeight = 600;
-  } else {
+    } else {
       turtleConfig.height = 300;
       turtleConfig.worldHeight = 300;
-  }
-  // Always set the width to output panel width -> match the UI
-  turtleConfig.width = $( '#output' ).width();
-  turtleConfig.worldWidth = $( '#output' ).width();
-
-  if (!hasTurtle) {
+    }
+    // Always set the width to output panel width -> match the UI
+    turtleConfig.width = $('#output').width();
+    turtleConfig.worldWidth = $('#output').width();
+    $('#turtlecanvas').show();
+  } else {
     // There might still be a visible turtle panel. If the new program does not use the Turtle,
     // remove it (by clearing the '#turtlecanvas' div)
     $('#turtlecanvas').empty();
-  } else {
-    // Otherwise make sure that it is shown as it might be hidden from a previous code execution.
-    $('#turtlecanvas').show();
   }
 
   Sk.configure({
