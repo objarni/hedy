@@ -41,8 +41,6 @@ var StopExecution = false;
     exampleEditor.setOptions({ maxLines: Infinity });
     if ($(preview).hasClass('common-mistakes')) {
       exampleEditor.setOptions({ minLines: 10 });
-    } else {
-      exampleEditor.setOptions({ minLines: 2 });
     }
 
     if (dir === "rtl") {
