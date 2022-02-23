@@ -13,6 +13,7 @@ export let theModalEditor: AceAjax.Editor;
 var StopExecution = false;
 
 (function() {
+  console.log("We gaan is even kijken!");
   // A bunch of code expects a global "State" object. Set it here if not
   // set yet.
   if (!window.State) {
@@ -30,6 +31,8 @@ var StopExecution = false;
   // read-only editors (for syntax highlighting)
   let counter = 0
   for (const preview of $('.turn-pre-into-ace pre').get()) {
+    console.log("We vinden een pre!");
+    console.log(preview);
     counter += 1;
     $(preview).addClass('text-lg rounded');
     $(preview).attr('id', "code_block_" + counter);
