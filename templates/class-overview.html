@@ -89,14 +89,19 @@
   </div>
   <p>{{auth.class_link}}: <a href="{{class_info.link}}"><span class="text-blue-500">{{class_info.link}}</span></a></p>
   <div class="mt-4 flex flex-row">
+    <button class="yellow-btn text-white" id="hide_settings_button" onclick=$('#extra_class_options').hide();$(this).hide();$('#show_settings_button').show();>Hide settings</button>
+    <button class="yellow-btn text-white hidden" id="show_settings_button" onclick=$('#extra_class_options').show();$(this).hide();$('#hide_settings_button').show();>Show settings</button>
+    <button class="blue-btn ltr:ml-auto rtl:mr-auto" onclick="window.location.href = '/for-teachers'">{{auth.back_to_teachers_page}}</button>
+    <button class="red-btn ltr:ml-4 rtl:mr-4" onclick="hedyApp.delete_class ('{{class_info.id}}')">{{auth.delete_class}}</button>
+  </div>
+  <div class="mt-4 flex flex-row">
+
+  </div>
+  <div class="mt-4 flex flex-row border border-gray-400 rounded-lg p-4" id="extra_class_options">
     <button class="green-btn" onclick="window.location.href = '/for-teachers/customize-class/{{class_info.id}}'">{{ auth.customize_class }}</button>
     <button class="green-btn ltr:ml-4 rtl:mr-4" onclick="hedyApp.rename_class ('{{class_info.id}}')">{{auth.rename_class}}</button>
     <button class="green-btn ltr:ml-4 rtl:mr-4" onclick="hedyApp.invite_student ('{{class_info.id}}')">{{ auth.invite_student }}</button>
     <button class="green-btn ltr:ml-4 rtl:mr-4" onclick="window.location.href = '/stats/class/{{class_info.id}}'">{{auth.class_stats}}</button>
-  </div>
-  <div class="mt-4 flex flex-row">
-    <button class="blue-btn" onclick="window.location.href = '/for-teachers'">{{auth.back_to_teachers_page}}</button>
-    <button class="red-btn ltr:ml-4 rtl:mr-4" onclick="hedyApp.delete_class ('{{class_info.id}}')">{{auth.delete_class}}</button>
   </div>
   <div class="mt-4">
   {% if invites %}
