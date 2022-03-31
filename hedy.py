@@ -950,6 +950,9 @@ class IsValid(Filter):
 
 
     #other rules are inherited from Filter
+def unused_variable(ast):
+    return False
+
 
 def valid_echo(ast):
     commands = ast.children
@@ -1072,7 +1075,6 @@ class ConvertToPython(Transformer):
     def check_var_usage(self, args):
         # this function checks whether arguments are valid
         # we can proceed if all arguments are either quoted OR all variables
-
         args_to_process = [a for a in args if not isinstance(a, Tree)]#we do not check trees (calcs) they are always ok
 
         unquoted_args = [a for a in args_to_process if not ConvertToPython.is_quoted(a)]
@@ -1213,7 +1215,7 @@ class ConvertToPython_2(ConvertToPython_1):
         raise hedy.exceptions.WrongLevelException(1, 'ask', "ask_needs_var")
     def error_echo_dep_2(self, args):
         # echo is no longer usable this way, raise!
-        # ask_needs_var is an entry in lang.yaml in texts where we can add extra info on this error
+        # echo_out is an entry in lang.yaml in texts where we can add extra info on this error
         raise hedy.exceptions.WrongLevelException(1,  'echo', "echo_out")
 
     def turn(self, args):
@@ -2159,6 +2161,9 @@ def transpile_inner(input_string, level, lang="en"):
         abstract_syntax_tree = ExtractAST().transform(program_root)
 
         is_program_complete(abstract_syntax_tree, level)
+
+        if unused_variable(abstract_syntax_tree):
+            raise exceptions.EmptyProgramException()
 
         if not valid_echo(abstract_syntax_tree):
             raise exceptions.LonelyEchoException()
