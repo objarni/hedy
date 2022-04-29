@@ -213,8 +213,8 @@ class Database:
         """Return all users."""
         # If we have some filtering -> return all possible users, otherwise return last 500
         if filtering:
-            return USERS.scan()
-        return USERS.scan(limit=500)
+            return USERS.scan(sort_key='date', reverse=True)
+        return USERS.scan(sort_key='date', reverse=True, limit=500)
 
     def get_all_explore_programs(self):
         return PROGRAMS.get_many({'public': 1}, sort_key='date', limit=48, reverse=True)
