@@ -93,28 +93,28 @@ sections:
     levels:
     -   level: '1'
         sections:
-        -   title: "Les élèves oublient de taper les commandes"
+        -   title: "Students forget to type commandos"
             example:
                 error_text: |
-                    Par exemple, ils tapent une phrase sans `{print}`.
+                    For example they type a sentence without using print.
                 error_code: |
-                    Hedy ne peut pas afficher ça.
+                    Hedy can't print this
                 solution_text: |
-                    Apprenez à vos élèves à toujours commencer une ligne par une commande.
+                    Teach your students to always start a line of code with a command.
                 solution_code: |
                     imprimer Hedy peut imprimer ceci !
-        -   title: "Les élèves utilisent des majuscules lorsqu'ils tapent des commandes"
+        -   title: "Students use capitals when typing commands"
             example:
                 error_text: |
-                    Les commandes ne fonctionneront pas si elles sont en majuscules.
+                    Commands won't work if they are in capitals.
                 error_code: |
                     Demander Pourquoi mon code échoue-t-il ?
                     Imprime Parce que j'utilise des majuscules.
                 solution_text: |
-                    Enlevez les majuscules.
+                    Remove the capitals.
                 solution_code: |
-                    {ask} Why does my code work now?
-                    {print} Because I removed the capitals!
+                    ask Why does my code work now?
+                    print Because I removed the capitals!
         -   title: "Students use echo without ask"
             example:
                 error_text: |

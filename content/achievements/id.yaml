@@ -1,14 +1,14 @@
 achievements:
     well_begun_is_half_done:
-        title: "Awal yang baik"
+        title: "Well begun is half done"
         text: |
-            Selesaikan tutorial Hedy
+            Finish the Hedy tutorial
     adventure_is_worthwhile:
-        title: "Petualangan itu Berharga"
+        title: "Adventure is Worthwhile"
         text: |
-            Simpan program dari petualangan
+            Store a program from an adventure
     programming_protagonist:
-        title: "Pemrograman Protagonis"
+        title: "Programming Protagonist"
         text: |
             Run a successful program after an error
     did_you_say_please:
