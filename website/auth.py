@@ -41,18 +41,27 @@ if os.getenv('MAILCHIMP_API_KEY') and os.getenv('MAILCHIMP_AUDIENCE_ID'):
 
 def mailchimp_subscribe_user(email):
     request_body = {'email_address': email, 'status': 'subscribed'}
-    r = requests.post(MAILCHIMP_API_URL + '/members', headers=MAILCHIMP_API_HEADERS, data=json.dumps(request_body))
+    r = requests.post(
+        f'{MAILCHIMP_API_URL}/members',
+        headers=MAILCHIMP_API_HEADERS,
+        data=json.dumps(request_body),
+    )
+
 
     subscription_error = None
-    if r.status_code != 200 and r.status_code != 400:
+    if r.status_code not in [200, 400]:
         subscription_error = True
     # We can get a 400 if the email is already subscribed to the list. We should ignore this error.
     if r.status_code == 400 and not re.match('.*already a list member', r.text):
         subscription_error = True
     # If there's an error in subscription through the API, we report it to the main email address
     if subscription_error:
-        send_email(config['email']['sender'], 'ERROR - Subscription to Hedy newsletter on signup', email,
-                   '<p>' + email + '</p><pre>Status:' + str(r.status_code) + '    Body:' + r.text + '</pre>')
+        send_email(
+            config['email']['sender'],
+            'ERROR - Subscription to Hedy newsletter on signup',
+            email,
+            f'<p>{email}</p><pre>Status:{str(r.status_code)}    Body:{r.text}</pre>',
+        )
 
 
 @querylog.timed
@@ -97,9 +106,8 @@ def current_user():
     now = times()
     user = session.get('user', {'username': '', 'email': ''})
     ttl = session.get('user-ttl', None)
-    if ttl == None or now >= ttl:
-        username = user['username']
-        if username:
+    if ttl is None or now >= ttl:
+        if username := user['username']:
             db_user = DATABASE.user_by_username(username)
             remember_current_user(db_user)
 
@@ -142,9 +150,11 @@ def update_is_teacher(user, is_teacher_value=1):
 def requires_login(f):
     @wraps(f)
     def inner(*args, **kws):
-        if not is_user_logged_in():
-            return utils.error_page(error=403)
-        return f(current_user(), *args, **kws)
+        return (
+            f(current_user(), *args, **kws)
+            if is_user_logged_in()
+            else utils.error_page(error=403)
+        )
 
     return inner
 
@@ -163,8 +173,7 @@ def login_user_from_token_cookie():
 
     # We update the login record with the current time -> this way the last login is closer to correct
     DATABASE.record_login(token['username'])
-    user = DATABASE.user_by_username(token['username'])
-    if user:
+    if user := DATABASE.user_by_username(token['username']):
         remember_current_user(user)
 
 
@@ -236,9 +245,9 @@ def store_new_account(account, email):
     }
 
     for field in ['country', 'birth_year', 'gender', 'language', 'prog_experience', 'experience_languages']:
-        if field in account:
-            if field == 'experience_languages' and len(account[field]) == 0:
-                continue
+        if field in account and (
+            field != 'experience_languages' or len(account[field]) != 0
+        ):
             user[field] = account[field]
 
     DATABASE.store_user(user)
@@ -255,14 +264,16 @@ def store_new_account(account, email):
 
 
 def create_recover_link(username, token):
-    email = email_base_url() + '/reset?username='
-    email += urllib.parse.quote_plus(username) + '&token=' + urllib.parse.quote_plus(token)
+    email = f'{email_base_url()}/reset?username='
+    email += f'{urllib.parse.quote_plus(username)}&token={urllib.parse.quote_plus(token)}'
+
     return email
 
 
 def create_verify_link(username, token):
-    email = email_base_url() + '/auth/verify?username='
-    email += urllib.parse.quote_plus(username) + '&token=' + urllib.parse.quote_plus(token)
+    email = f'{email_base_url()}/auth/verify?username='
+    email += f'{urllib.parse.quote_plus(username)}&token={urllib.parse.quote_plus(token)}'
+
     return email
 
 # Note: translations are used only for texts that will be seen by a GUI user.
@@ -332,9 +343,7 @@ def routes(app, database):
         if not isinstance(body, dict):
             return gettext('ajax_error'), 400
 
-        # Validate the essential data using a function -> also used for multiple account creation
-        validation = validate_signup_data(body)
-        if validation:
+        if validation := validate_signup_data(body):
             return validation, 400
 
         # Validate fields only relevant when creating a single user account
@@ -352,15 +361,16 @@ def routes(app, database):
             return gettext('keyword_language_invalid'), 400
 
         # Validations, optional fields
-        if 'birth_year' in body:
-            if not isinstance(body.get('birth_year'), int) or body['birth_year'] <= 1900 or body['birth_year'] > datetime.datetime.now().year:
-                return (gettext('year_invalid') + str(datetime.datetime.now().year)), 400
-        if 'gender' in body:
-            if body['gender'] != 'm' and body['gender'] != 'f' and body['gender'] != 'o':
-                return gettext('gender_invalid'), 400
-        if 'country' in body:
-            if not body['country'] in COUNTRIES:
-                return gettext('country_invalid'), 400
+        if 'birth_year' in body and (
+            not isinstance(body.get('birth_year'), int)
+            or body['birth_year'] <= 1900
+            or body['birth_year'] > datetime.datetime.now().year
+        ):
+            return (gettext('year_invalid') + str(datetime.datetime.now().year)), 400
+        if 'gender' in body and body['gender'] not in ['m', 'f', 'o']:
+            return gettext('gender_invalid'), 400
+        if 'country' in body and body['country'] not in COUNTRIES:
+            return gettext('country_invalid'), 400
         if 'prog_experience' in body and body['prog_experience'] not in ['yes', 'no']:
             return gettext('experience_invalid'), 400
         if 'experience_languages' in body:
@@ -423,7 +433,7 @@ def routes(app, database):
             return gettext('username_invalid'), 403
 
         # If user is already verified -> re-direct to landing-page anyway
-        if not 'verification_pending' in user:
+        if 'verification_pending' not in user:
             return redirect('/landing-page')
 
         # Verify the token
@@ -530,20 +540,23 @@ def routes(app, database):
 
         # Mail is a unique field, only mandatory if the user doesn't have a related teacher (and no mail address)
         user = DATABASE.user_by_username(user['username'])
-        if not user.get('teacher') or 'email' in body:
-            if not isinstance(body.get('email'), str) or not valid_email(body['email']):
-                return gettext('email_invalid'), 400
+        if (not user.get('teacher') or 'email' in body) and (
+            not isinstance(body.get('email'), str)
+            or not valid_email(body['email'])
+        ):
+            return gettext('email_invalid'), 400
 
         # Validations, optional fields
-        if 'birth_year' in body:
-            if not isinstance(body.get('birth_year'), int) or body['birth_year'] <= 1900 or body['birth_year'] > datetime.datetime.now().year:
-                return gettext('year_invalid') + str(datetime.datetime.now().year), 400
-        if 'gender' in body:
-            if body['gender'] != 'm' and body['gender'] != 'f' and body['gender'] != 'o':
-                return gettext('gender_invalid'), 400
-        if 'country' in body:
-            if not body['country'] in COUNTRIES:
-                return gettext('country_invalid'), 400
+        if 'birth_year' in body and (
+            not isinstance(body.get('birth_year'), int)
+            or body['birth_year'] <= 1900
+            or body['birth_year'] > datetime.datetime.now().year
+        ):
+            return gettext('year_invalid') + str(datetime.datetime.now().year), 400
+        if 'gender' in body and body['gender'] not in ['m', 'f', 'o']:
+            return gettext('gender_invalid'), 400
+        if 'country' in body and body['country'] not in COUNTRIES:
+            return gettext('country_invalid'), 400
         if 'prog_experience' in body and body['prog_experience'] not in ['yes', 'no']:
             return gettext('experience_invalid'), 400
         if 'experience_languages' in body:
@@ -557,8 +570,7 @@ def routes(app, database):
         if 'email' in body:
             email = body['email'].strip().lower()
             if email != user.get('email'):
-                exists = DATABASE.user_by_email(email)
-                if exists:
+                if exists := DATABASE.user_by_email(email):
                     return gettext('exists_email'), 403
                 token = make_salt()
                 hashed_token = hash(token, make_salt())
@@ -574,8 +586,11 @@ def routes(app, database):
                 # We check whether the user is in the Mailchimp list.
                 if not is_testing_request(request) and MAILCHIMP_API_URL:
                     # We hash the email with md5 to avoid emails with unescaped characters triggering errors
-                    request_path = MAILCHIMP_API_URL + '/members/' + hashlib.md5(
-                        user['email'].encode('utf-8')).hexdigest()
+                    request_path = (
+                        f'{MAILCHIMP_API_URL}/members/'
+                        + hashlib.md5(user['email'].encode('utf-8')).hexdigest()
+                    )
+
                     r = requests.get(request_path, headers=MAILCHIMP_API_HEADERS)
                     # If user is subscribed, we remove the old email from the list and add the new one
                     if r.status_code == 200:
@@ -584,12 +599,16 @@ def routes(app, database):
 
         username = user['username']
 
-        updates = {}
-        for field in ['country', 'birth_year', 'gender', 'language', 'keyword_language']:
-            if field in body:
-                updates[field] = body[field]
-            else:
-                updates[field] = None
+        updates = {
+            field: body[field] if field in body else None
+            for field in [
+                'country',
+                'birth_year',
+                'gender',
+                'language',
+                'keyword_language',
+            ]
+        }
 
         if updates:
             DATABASE.update_user(username, updates)
@@ -658,10 +677,9 @@ def routes(app, database):
         if is_testing_request(request):
             # If this is an e2e test, we return the email verification token directly instead of emailing it.
             return jsonify({'username': user['username'], 'token': token}), 200
-        else:
-            send_email_template(template='recover_password', email=email,
-                                link=create_recover_link(user['username'], token), username=user['username'])
-            return jsonify({'message':gettext('sent_password_recovery')}), 200
+        send_email_template(template='recover_password', email=email,
+                            link=create_recover_link(user['username'], token), username=user['username'])
+        return jsonify({'message':gettext('sent_password_recovery')}), 200
 
     @app.route('/auth/reset', methods=['POST'])
     def reset():
@@ -802,7 +820,7 @@ def send_email(recipient, subject, body_plain, body_html):
         if not is_debug_mode():
             raise e
     else:
-        print('Email sent to ' + recipient)
+        print(f'Email sent to {recipient}')
 
 
 def get_template_translation(template):
@@ -864,7 +882,6 @@ def email_base_url():
     Will use the environment variable BASE_URL if set, otherwise will guess using
     the current Flask request.
     """
-    from_env = os.getenv('BASE_URL')
-    if from_env:
+    if from_env := os.getenv('BASE_URL'):
         return from_env.rstrip('/')
     return request.host_url

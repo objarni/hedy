@@ -4,7 +4,7 @@
 CHARACTER = '0-9_A-Za-zÀ-ÿء-ي'
 
 # definition of word
-WORD      = '([' + CHARACTER + "]+)"
+WORD = f'([{CHARACTER}]+)'
 # space
 SPACE     = "( +)"
 
@@ -14,7 +14,7 @@ END_LINE = '( *$)'
 
 # beginning and end of words
 START_WORD = '(^| )'
-END_WORD   = '(?![' + CHARACTER + '])'
+END_WORD = f'(?![{CHARACTER}])'
 
 TRANSLATE_WORD = [
 	"print",
@@ -62,7 +62,4 @@ TRANSLATE_WORD = [
 ]
 
 def K(word):
-	if word in TRANSLATE_WORD:
-		return "(__"+word+"__)"
-	else:
-		return "(" + word + ")"
+	return f"(__{word}__)" if word in TRANSLATE_WORD else f"({word})"

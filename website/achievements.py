@@ -19,15 +19,17 @@ class Achievements:
     def get_all_commands(self):
         commands = []
         for i in range(1, hedy.HEDY_MAX_LEVEL+1):
-            for command in hedy.commands_per_level.get(i):
-                commands.append(command)
+            commands.extend(iter(hedy.commands_per_level.get(i)))
         return set(commands)
 
     def get_global_statistics(self):
         all_achievements = self.DATABASE.get_all_achievements()
-        statistics = {}
-        for achievement in self.TRANSLATIONS.get_translations("en").get("achievements").keys():
-            statistics[achievement] = 0
+        statistics = {
+            achievement: 0
+            for achievement in self.TRANSLATIONS.get_translations("en")
+            .get("achievements")
+            .keys()
+        }
 
         self.total_users = len(all_achievements)
         for user in all_achievements:
@@ -36,35 +38,36 @@ class Achievements:
         return statistics
 
     def initialize_user_data_if_necessary(self):
-        if 'achieved' not in session:
-            achievements_data = self.DATABASE.progress_by_username(current_user()['username'])
-            session['new_achieved'] = []
-            session['new_commands'] = []
-            session['previous_code'] = None
-            session['identical_consecutive_errors'] = 0
-            session['consecutive_errors'] = 0
-            if not achievements_data:
-                achievements_data = {}
-            if 'achieved' in achievements_data:
-                session['achieved'] = achievements_data['achieved']
-            else:
-                session['achieved'] = []
-            if 'commands' in achievements_data:
-                session['commands'] = achievements_data['commands']
-            else:
-                session['commands'] = []
-            if 'run_programs' in achievements_data:
-                session['run_programs'] = achievements_data['run_programs']
-            else:
-                session['run_programs'] = 0
-            if 'saved_programs' in achievements_data:
-                session['saved_programs'] = achievements_data['saved_programs']
-            else:
-                session['saved_programs'] = 0
-            if 'submitted_programs' in achievements_data:
-                session['submitted_programs'] = achievements_data['submitted_programs']
-            else:
-                session['submitted_programs'] = 0
+        if 'achieved' in session:
+            return
+        achievements_data = self.DATABASE.progress_by_username(current_user()['username'])
+        session['new_achieved'] = []
+        session['new_commands'] = []
+        session['previous_code'] = None
+        session['identical_consecutive_errors'] = 0
+        session['consecutive_errors'] = 0
+        if not achievements_data:
+            achievements_data = {}
+        if 'achieved' in achievements_data:
+            session['achieved'] = achievements_data['achieved']
+        else:
+            session['achieved'] = []
+        if 'commands' in achievements_data:
+            session['commands'] = achievements_data['commands']
+        else:
+            session['commands'] = []
+        if 'run_programs' in achievements_data:
+            session['run_programs'] = achievements_data['run_programs']
+        else:
+            session['run_programs'] = 0
+        if 'saved_programs' in achievements_data:
+            session['saved_programs'] = achievements_data['saved_programs']
+        else:
+            session['saved_programs'] = 0
+        if 'submitted_programs' in achievements_data:
+            session['submitted_programs'] = achievements_data['submitted_programs']
+        else:
+            session['submitted_programs'] = 0
 
     def routes(self, app, database):
         global DATABASE
@@ -237,9 +240,11 @@ class Achievements:
                     session['identical_consecutive_errors'] += 2 #We have to count the first one too!
                 else:
                     session['identical_consecutive_errors'] += 1
-            if session['identical_consecutive_errors'] >= 3:
-                if 'programming_panic' not in session['achieved']:
-                    session['new_achieved'].append("programming_panic")
+            if (
+                session['identical_consecutive_errors'] >= 3
+                and 'programming_panic' not in session['achieved']
+            ):
+                session['new_achieved'].append("programming_panic")
             session['previous_code'] = code
         else:
             if 'programming_protagonist' not in session['achieved'] and session['consecutive_errors'] >= 1:

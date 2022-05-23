@@ -60,17 +60,15 @@ class Database:
 
         Uses a DynamoDB update to add to the exising record.
         """
-        key = {
-            "user": username,
-            "levelAttempt": str(level).zfill(4) + '_' + attempt_id,
-        }
+        key = {"user": username, "levelAttempt": f'{str(level).zfill(4)}_{attempt_id}'}
 
         updates = {
             "attemptId": attempt_id,
             "level": level,
             "date": times(),
-            "q" + str(question_number): dynamo.DynamoAddToList(answer),
+            f"q{str(question_number)}": dynamo.DynamoAddToList(answer),
         }
+
 
         if is_correct:
             updates['correct'] = dynamo.DynamoAddToNumberSet(int(question_number))
@@ -80,11 +78,17 @@ class Database:
     def get_quiz_answer(self, username, level, attempt_id):
         """Load a quiz answer from the database."""
 
-        quizAnswers = QUIZ_ANSWERS.get({'user': username, 'levelAttempt': str(level).zfill(4) + '_' + attempt_id})
+        quizAnswers = QUIZ_ANSWERS.get(
+            {
+                'user': username,
+                'levelAttempt': f'{str(level).zfill(4)}_{attempt_id}',
+            }
+        )
+
 
         array_quiz_answers = []
         for question_number in range(len(quizAnswers)):
-            answers = quizAnswers.get("q" + str(question_number))
+            answers = quizAnswers.get(f"q{str(question_number)}")
             array_quiz_answers.append(answers)
         return array_quiz_answers
 
@@ -260,23 +264,18 @@ class Database:
         if isinstance(storage, dynamo.AwsDynamoStorage):
             classes = CLASSES.get_many({'teacher': username}, reverse=True)
 
-        # If we're using the in-memory database, we need to make a shallow copy
-        # of the classes before changing the `students` key from a set to list,
-        # otherwise the field will remain a list later and that will break the
-        # set methods.
-        #
-        # FIXME: I don't understand what the above comment is saying, but I'm
-        # skeptical that it's accurate.
         else:
-            classes = []
-            for Class in CLASSES.get_many({'teacher': username}, reverse=True):
-                classes.append (Class.copy())
+            classes = [
+                Class.copy()
+                for Class in CLASSES.get_many({'teacher': username}, reverse=True)
+            ]
+
         if students_to_list:
             for Class in classes:
-                if not 'students' in Class:
-                    Class ['students'] = []
-                else:
-                    Class ['students'] = list (Class ['students'])
+                Class['students'] = (
+                    [] if 'students' not in Class else list(Class['students'])
+                )
+
         return classes
 
     def get_teacher_students(self, username):
@@ -381,12 +380,10 @@ class Database:
         CUSTOMIZATIONS.put(customizations)
 
     def get_class_customizations(self, class_id):
-        customizations = CUSTOMIZATIONS.get({'id': class_id})
-        return customizations
+        return CUSTOMIZATIONS.get({'id': class_id})
 
     def get_student_class_customizations(self, user):
-        student_classes = self.get_student_classes(user)
-        if student_classes:
+        if student_classes := self.get_student_classes(user):
             class_customizations = self.get_class_customizations(student_classes[0]['id'])
             return class_customizations or {}
         return {}
@@ -461,9 +458,7 @@ class Database:
         PUBLIC_PROFILES.put(data)
 
     def set_favourite_program(self, username, program_id):
-        # We can only set a favourite program is there is already a public profile
-        data = PUBLIC_PROFILES.get({'username': username})
-        if data:
+        if data := PUBLIC_PROFILES.get({'username': username}):
             data['favourite_program'] = program_id
             self.update_public_profile(username, data)
             return True

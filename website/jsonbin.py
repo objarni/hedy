@@ -70,7 +70,7 @@ class JsonBinLogger:
                     # Not JSON or no success field
                     logger.exception(f'Posting to jsonbin failed: {response.text}')
             except Exception:
-                logger.exception(f'Error posting to jsonbin.')
+                logger.exception('Error posting to jsonbin.')
 
 
 class NullJsonbinLogger():

@@ -30,7 +30,7 @@ USERS = {}
 def request(method, path, headers={}, body='', cookies=None):
 
     if method not in['get', 'post', 'put', 'delete']:
-        raise Exception('request - Invalid method: ' + str(method))
+        raise Exception(f'request - Invalid method: {str(method)}')
 
     # We pass the X-Testing header to let the server know that this is a request coming from an E2E test, thus no transactional emails should be sent.
     headers['X-Testing'] = '1'
@@ -83,20 +83,29 @@ class AuthHelper(unittest.TestCase):
         return self.user['username'] if self.user else None
 
     def make_username(self):
-        # We create usernames with a random component so that if a test fails, we don't have to do a cleaning of the DB so that the test suite can run again
-        # This also allows us to run concurrent tests without having username conflicts.
-        username = 'user' + str(random.randint(10000, 100000))
-        return username
+        return f'user{str(random.randint(10000, 100000))}'
 
     # If user with `username` exists, return it. Otherwise, create it.
     def assert_user_exists(self, username):
         if not isinstance(username, str):
-            raise Exception('AuthHelper.assert_user_exists - Invalid username: ' + str(username))
+            raise Exception(
+                f'AuthHelper.assert_user_exists - Invalid username: {str(username)}'
+            )
+
 
         if username in USERS:
             return USERS[username]
-        body = {'username': username, 'email': username + '@hedy.com', 'mail_repeat': username + '@hedy.com',
-                'language': 'nl', 'keyword_language': 'en', 'agree_terms': True, 'password': 'foobar', 'password_repeat': 'foobar'}
+        body = {
+            'username': username,
+            'email': f'{username}@hedy.com',
+            'mail_repeat': f'{username}@hedy.com',
+            'language': 'nl',
+            'keyword_language': 'en',
+            'agree_terms': True,
+            'password': 'foobar',
+            'password_repeat': 'foobar',
+        }
+
         response = request('post', 'auth/signup', {}, body, cookies=self.user_cookies[username])
 
         # It might sometimes happen that by the time we attempted to create the user, another test did it already.
@@ -297,7 +306,7 @@ class TestPages(AuthHelper):
             for page in pages:
                 if page == "/hedy":
                     for i in range(2, HEDY_MAX_LEVEL+1):
-                        self.get_data(page + "/" + str(i))
+                        self.get_data(f"{page}/{str(i)}")
                 self.get_data(page)
 
 class TestSessionVariables(AuthHelper):
@@ -363,8 +372,17 @@ class TestAuth(AuthHelper):
     def test_signup(self):
         # GIVEN a valid username and signup body
         username = self.make_username()
-        user = {'username': username, 'email': username + '@hedy.com', 'mail_repeat': username + '@hedy.com',
-                'password': 'foobar', 'password_repeat': 'foobar', 'language': 'nl', 'keyword_language': 'en', 'agree_terms': True}
+        user = {
+            'username': username,
+            'email': f'{username}@hedy.com',
+            'mail_repeat': f'{username}@hedy.com',
+            'password': 'foobar',
+            'password_repeat': 'foobar',
+            'language': 'nl',
+            'keyword_language': 'en',
+            'agree_terms': True,
+        }
+
 
         # WHEN signing up a new user
         # THEN receive an OK response code from the server
@@ -423,7 +441,11 @@ class TestAuth(AuthHelper):
 
         for invalid_verification in invalid_verifications:
             # THEN receive an invalid response code from the server
-            self.get_data('auth/verify?' + urllib.parse.urlencode(invalid_verification), expect_http_code=400)
+            self.get_data(
+                f'auth/verify?{urllib.parse.urlencode(invalid_verification)}',
+                expect_http_code=400,
+            )
+
 
         # WHEN submitting well-formed verifications with invalid values
         incorrect_verifications = [
@@ -435,7 +457,10 @@ class TestAuth(AuthHelper):
 
         for incorrect_verification in incorrect_verifications:
             # THEN receive a forbidden response code from the server
-            self.get_data('auth/verify?' + urllib.parse.urlencode(incorrect_verification), expect_http_code=403)
+            self.get_data(
+                f'auth/verify?{urllib.parse.urlencode(incorrect_verification)}',
+                expect_http_code=403,
+            )
 
     def test_verify_email(self):
         # GIVEN a new user
@@ -445,12 +470,12 @@ class TestAuth(AuthHelper):
         # WHEN attepting to verify the user
         # THEN receive a redirect from the server taking us to `/landing-page`
         headers = self.get_data('auth/verify?' + urllib.parse.urlencode({'username': self.username, 'token': self.user['verify_token']}), expect_http_code=302, return_headers=True)
-        self.assertEqual(headers['location'], HOST + 'landing-page')
+        self.assertEqual(headers['location'], f'{HOST}landing-page')
 
         # WHEN attepting to verify the user again (the operation should be idempotent)
         # THEN (again) receive a redirect from the server taking us to `/landing-page`
         headers = self.get_data('auth/verify?' + urllib.parse.urlencode({'username': self.username, 'token': self.user['verify_token']}), expect_http_code=302, return_headers=True)
-        self.assertEqual(headers['location'], HOST + 'landing-page')
+        self.assertEqual(headers['location'], f'{HOST}landing-page')
 
         # WHEN retrieving profile to see that the user is no longer marked with `verification_pending`
         self.given_specific_user_is_logged_in(self.username)
@@ -580,7 +605,7 @@ class TestAuth(AuthHelper):
                     'language': self.user['language'],
                     'keyword_language': self.user['keyword_language']
                 }
-                body.update(invalid_body)
+                body |= invalid_body
                 invalid_body = body
             # THEN receive an invalid response code from the server
             self.post_data('profile', invalid_body, expect_http_code=400)
@@ -615,7 +640,7 @@ class TestAuth(AuthHelper):
         # WHEN updating the user's email
         # (we check email change separately since it involves a flow with a token)
         # THEN receive an OK response code from the server
-        new_email = self.username + '@newhedy.com'
+        new_email = f'{self.username}@newhedy.com'
         body = self.post_data('profile', {'email': new_email, 'language': self.user['language'], 'keyword_language': self.user['keyword_language']})
 
         # THEN confirm that the server replies with an email verification token
@@ -900,7 +925,7 @@ class TestProgram(AuthHelper):
         saved_program = saved_programs[0]
         for key in program:
             # WHEN we create a program an achievement is achieved, being in the response but not the saved_program
-            if key != "achievements" and key != "message":
+            if key not in ["achievements", "message"]:
                 self.assertEqual(program[key], saved_program[key])
 
     def test_invalid_make_program_public(self):
@@ -954,7 +979,7 @@ class TestProgram(AuthHelper):
         self.given_fresh_user_is_logged_in()
         # WHEN requesting a public program
         # THEN receive an OK response code from the server
-        self.get_data('hedy/1/' + program_id, expect_http_code=200)
+        self.get_data(f'hedy/1/{program_id}', expect_http_code=200)
 
     def test_valid_make_program_private(self):
         # GIVEN a logged in user with at least one public program
@@ -978,7 +1003,7 @@ class TestProgram(AuthHelper):
         self.given_fresh_user_is_logged_in()
         # WHEN requesting a public program
         # THEN receive a not found response code from the server
-        self.get_data('hedy/1/' + program_id, expect_http_code=404)
+        self.get_data(f'hedy/1/{program_id}', expect_http_code=404)
 
     def test_invalid_delete_program(self):
         # GIVEN a logged in user with at least one program
@@ -1153,7 +1178,9 @@ class TestClasses(AuthHelper):
         # WHEN retrieving the short link of a class
         # THEN receive a redirect to `class/ID/join/LINK`
         body = self.get_data('hedy/l/' + Class['link'], expect_http_code=302)
-        if not re.search(HOST + 'class/' + Class['id'] + '/prejoin/' + Class['link'], body):
+        if not re.search(
+            f'{HOST}class/' + Class['id'] + '/prejoin/' + Class['link'], body
+        ):
             raise Exception('Invalid or missing redirect link')
 
         # WHEN joining a class
@@ -1239,7 +1266,9 @@ class TestCustomizeClasses(AuthHelper):
 
         # WHEN customizing a class without being a teacher
         # THEN receive a forbidden response code from the server
-        self.post_data('for-teachers/customize-class/' + class_id, {}, expect_http_code=403)
+        self.post_data(
+            f'for-teachers/customize-class/{class_id}', {}, expect_http_code=403
+        )
 
     def test_invalid_customization(self):
         # GIVEN a user with teacher permissions
@@ -1267,11 +1296,18 @@ class TestCustomizeClasses(AuthHelper):
 
         for invalid_body in invalid_bodies:
             # THEN receive an invalid response code from the server
-            self.post_data('for-teachers/customize-class/' + class_id, invalid_body, expect_http_code=400)
+            self.post_data(
+                f'for-teachers/customize-class/{class_id}',
+                invalid_body,
+                expect_http_code=400,
+            )
+
 
         # WHEN customizing a class that doesn't exist
         # THEN receive a not found response code from the server
-        self.post_data('for-teachers/customize-class/123' + class_id, {}, expect_http_code=404)
+        self.post_data(
+            f'for-teachers/customize-class/123{class_id}', {}, expect_http_code=404
+        )
 
     def test_valid_customization(self):
         # GIVEN a user with teacher permissions
@@ -1303,7 +1339,11 @@ class TestCustomizeClasses(AuthHelper):
 
         for valid_body in valid_bodies:
             # THEN receive an invalid response code from the server
-            self.post_data('for-teachers/customize-class/' + class_id, valid_body, expect_http_code=200)
+            self.post_data(
+                f'for-teachers/customize-class/{class_id}',
+                valid_body,
+                expect_http_code=200,
+            )
 
     def test_remove_customization(self):
         # GIVEN a user with teacher permissions
@@ -1319,11 +1359,16 @@ class TestCustomizeClasses(AuthHelper):
         # WHEN creating class customizations
         # THEN receive an OK response code with the server
         body = {'levels': [], 'adventures': {}, 'opening_dates': {}, 'teacher_adventures': [], 'other_settings': []}
-        self.post_data('for-teachers/customize-class/' + class_id, body, expect_http_code=200)
+        self.post_data(
+            f'for-teachers/customize-class/{class_id}', body, expect_http_code=200
+        )
+
 
         # WHEN deleting class customizations
         # THEN receive an OK response code with the server
-        self.delete_data('for-teachers/customize-class/' + class_id, expect_http_code=200)
+        self.delete_data(
+            f'for-teachers/customize-class/{class_id}', expect_http_code=200
+        )
 
 
 class TestCustomAdventures(AuthHelper):
@@ -1388,7 +1433,7 @@ class TestCustomAdventures(AuthHelper):
 
         # WHEN attempting to view the adventure using the id from the returned body
         # THEN receive an OK response with the server
-        self.get_data('for-teachers/customize-adventure/view/' + adventure_id)
+        self.get_data(f'for-teachers/customize-adventure/view/{adventure_id}')
 
     def test_invalid_update_adventure(self):
         # GIVEN a new teacher

@@ -290,7 +290,7 @@ def _add_user_type_runs(data, id_, value):
 
 def _split_keys_data(k, v, keys):
     values = k.split('#')
-    res = {keys[i].name: keys[i].class_(values[i]) for i in range(0, len(keys))}
+    res = {keys[i].name: keys[i].class_(values[i]) for i in range(len(keys))}
     res['data'] = v
     return res
 

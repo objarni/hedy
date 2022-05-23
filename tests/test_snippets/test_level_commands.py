@@ -25,12 +25,22 @@ def collect_snippets(path):
             else:
                 try:
                     # commands.k.demo_code
-                    for k, command in enumerate(yaml[level]):
+                    for command in yaml[level]:
+                        command_text_short = (
+                            command['name']
+                            if 'name' in command.keys()
+                            else command['explanation'][:10]
+                        )
 
-                        command_text_short = command['name'] if 'name' in command.keys() else command['explanation'][0:10]
                         Hedy_snippets.append(
-                            Snippet(filename=file, level=level, field_name='command ' + command_text_short + ' demo_code',
-                                    code=command['demo_code']))
+                            Snippet(
+                                filename=file,
+                                level=level,
+                                field_name=f'command {command_text_short} demo_code',
+                                code=command['demo_code'],
+                            )
+                        )
+
                 except:
                     print(f'Problem reading commands yaml for {lang} level {level}')
 
@@ -47,7 +57,10 @@ def translate_keywords_in_snippets(snippets):
                 # when we have several options, pick the first one as default
                 keyword_dict[lang][k] = v.split('|')[0]
 
-    english_keywords = YamlFile.for_file(f'../../content/keywords/en.yaml').to_dict()
+    english_keywords = YamlFile.for_file(
+        '../../content/keywords/en.yaml'
+    ).to_dict()
+
 
     # We replace the code snippet placeholders with actual keywords to the code is valid: {print} -> print
     for snippet in snippets:

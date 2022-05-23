@@ -38,24 +38,21 @@ class TestDynamoAbstraction(unittest.TestCase):
 
   def test_set_manipulation(self):
     """Test that adding to a set and removing from a set works."""
-    self.table.create(dict(
-      id='key',
-      values=set(['a', 'b', 'c']),
-    ))
+    self.table.create(dict(id='key', values={'a', 'b', 'c'}))
 
     self.table.update(dict(id='key'), dict(
       values=dynamo.DynamoAddToStringSet('x', 'y'),
     ))
 
     final = self.table.get(dict(id='key'))
-    self.assertEqual(final['values'], set(['a', 'b', 'c', 'x', 'y']))
+    self.assertEqual(final['values'], {'a', 'b', 'c', 'x', 'y'})
 
     self.table.update(dict(id='key'), dict(
       values=dynamo.DynamoRemoveFromStringSet('b', 'c'),
     ))
 
     final = self.table.get(dict(id='key'))
-    self.assertEqual(final['values'], set(['a', 'x', 'y']))
+    self.assertEqual(final['values'], {'a', 'x', 'y'})
 
   def test_cannot_set_manipulate_lists(self):
     """Test that if a value originally got created as a 'list', we cannot
@@ -78,14 +75,11 @@ class TestDynamoAbstraction(unittest.TestCase):
     """Test that adding to a set and removing from a set works."""
     with with_clean_file('test.json'):
       table = dynamo.Table(dynamo.MemoryStorage('test.json'), 'table', 'id')
-      table.create(dict(
-        id='key',
-        values=set(['a', 'b', 'c']),
-      ))
+      table.create(dict(id='key', values={'a', 'b', 'c'}))
 
       table = dynamo.Table(dynamo.MemoryStorage('test.json'), 'table', 'id')
       final = table.get(dict(id='key'))
-      self.assertEqual(final['values'], set(['a', 'b', 'c']))
+      self.assertEqual(final['values'], {'a', 'b', 'c'})
 
 
 class TestSortKeysInMemory(unittest.TestCase):

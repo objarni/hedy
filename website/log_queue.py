@@ -87,7 +87,7 @@ class LogQueue:
         candidates = glob.glob(f'{self.name}_dump.*.jsonl')
         for candidate in candidates:
             try:
-                claim_name = candidate + '.claimed'
+                claim_name = f'{candidate}.claimed'
                 os.rename(candidate, claim_name)
 
                 # If this succeeded, we're guaranteed to be able to read this file (and because
@@ -129,9 +129,8 @@ class LogQueue:
     def _save_records(self, timestamp, records):
         if self.transmitter:
             return self.transmitter(timestamp, records)
-        else:
-            count = len(records)
-            logging.warn(f'No querylog transmitter configured, {count} records dropped')
+        count = len(records)
+        logging.warn(f'No querylog transmitter configured, {count} records dropped')
 
     def _write_thread(self):
         """Background thread which will wake up every batch_window_s seconds to emit records from the queue."""

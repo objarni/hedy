@@ -15,8 +15,7 @@ def keywords_to_dict(lang="nl"):
     base = path.abspath(path.dirname(__file__))
 
     keywords_path = 'content/keywords/'
-    yaml_filesname_with_path = path.join(
-        base, keywords_path, lang + '.yaml')
+    yaml_filesname_with_path = path.join(base, keywords_path, f'{lang}.yaml')
 
     with open(yaml_filesname_with_path, 'r', encoding='UTF-8') as stream:
         command_combinations = yaml.safe_load(stream)
@@ -37,8 +36,10 @@ def all_keywords_to_dict():
         commands = keywords_to_dict(lang)
         keyword_dict[lang] = commands
 
-    all_translations = {k: [v.get(k,k) for v in keyword_dict.values()] for k in keyword_dict['en']}
-    return all_translations
+    return {
+        k: [v.get(k, k) for v in keyword_dict.values()]
+        for k in keyword_dict['en']
+    }
 
 
 def translate_keywords(input_string_, from_lang="en", to_lang="nl", level=1):
@@ -78,18 +79,18 @@ def translate_keywords(input_string_, from_lang="en", to_lang="nl", level=1):
 
 
 def replace_line(lines, index, line):
-    before = '\n'.join(lines[0:index])
+    before = '\n'.join(lines[:index])
     after = '\n'.join(lines[index+1:])
-    if len(before) > 0:
-        before = before + '\n'
-    if len(after) > 0:
+    if before != '':
+        before += '\n'
+    if after != '':
         after = '\n' + after
     return ''.join([before, line, after])
 
 
 def replace_token_in_line(line, rule, original, target):
     """Replaces a token in a line from the user input with its translated equivalent"""
-    before = '' if rule.start == 0 else line[0:rule.start]
+    before = '' if rule.start == 0 else line[:rule.start]
     after = '' if rule.end == len(line)-1 else line[rule.end+1:]
     # Note that we need to replace the target value in the original value because some
     # grammar rules have ambiguous length and value, e.g. _COMMA: _SPACES* (latin_comma | arabic_comma) _SPACES*
@@ -107,11 +108,20 @@ def find_command_keywords(input_string, lang, level, keywords, start_line, end_l
 
 
 def find_keyword_in_rules(rules, keyword, start_line, end_line, start_column, end_column):
-    for rule in rules:
-        if rule.keyword == keyword and rule.line == start_line and rule.start >= start_column:
-            if rule.line < end_line or (rule.line == end_line and rule.end <= end_column):
-                return rule.value
-    return None
+    return next(
+        (
+            rule.value
+            for rule in rules
+            if rule.keyword == keyword
+            and rule.line == start_line
+            and rule.start >= start_column
+            and (
+                rule.line < end_line
+                or (rule.line == end_line and rule.end <= end_column)
+            )
+        ),
+        None,
+    )
 
 
 class Translator(Visitor):
@@ -251,17 +261,20 @@ class Translator(Visitor):
         self.add_rule('_INPUT', 'input', tree)
 
     def add_rule(self, token_name, token_keyword, tree):
-        token = self.get_keyword_token(token_name, tree)
-        if token:
+        if token := self.get_keyword_token(token_name, tree):
             rule = Rule(token_keyword, token.line, token.column -
                         1, token.end_column - 2, token.value)
             self.rules.append(rule)
 
     def get_keyword_token(self, token_type, node):
-        for c in node.children:
-            if type(c) is Token and c.type == token_type:
-                return c
-        return None
+        return next(
+            (
+                c
+                for c in node.children
+                if type(c) is Token and c.type == token_type
+            ),
+            None,
+        )
 
     def get_keyword_tokens(self, token_type, node):
         return [c for c in node.children if type(c) is Token and c.type == token_type]

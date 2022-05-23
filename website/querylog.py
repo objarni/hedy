@@ -22,15 +22,14 @@ class LogRecord:
             self.start_rusage = resource.getrusage(resource.RUSAGE_SELF)
         self.attributes = kwargs
         self.running_timers = set([])
-        loadavg = os.getloadavg()[0] if not IS_WINDOWS else None
+        loadavg = None if IS_WINDOWS else os.getloadavg()[0]
         self.set(
             start_time=dtfmt(self.start_time),
             pid=os.getpid(),
             loadavg=loadavg,
             fault=0)
 
-        dyno = os.getenv('DYNO')
-        if dyno:
+        if dyno := os.getenv('DYNO'):
             self.set(dyno=dyno)
 
     def finish(self):
@@ -78,8 +77,8 @@ class LogRecord:
             self.attributes[name] = amount
 
     def inc_timer(self, name, time_ms):
-        self.inc(name + '_ms', time_ms)
-        self.inc(name + '_cnt')
+        self.inc(f'{name}_ms', time_ms)
+        self.inc(f'{name}_cnt')
 
     def record_exception(self, exc):
         self.set(fault=1, error_message=str(exc))
@@ -194,7 +193,7 @@ def emergency_shutdown():
 
 def dtfmt(timestamp):
     dt = datetime.datetime.utcfromtimestamp(timestamp)
-    return dt.isoformat() + 'Z'
+    return f'{dt.isoformat()}Z'
 
 
 class LogTimer:

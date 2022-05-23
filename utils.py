@@ -107,9 +107,9 @@ def extract_bcrypt_rounds(hash):
     return int(re.match(r'\$2b\$\d+', hash)[0].replace('$2b$', ''))
 
 def isoformat(timestamp):
-    """Turn a timestamp into an ISO formatted string."""
-    dt = datetime.datetime.utcfromtimestamp(timestamp)
-    return dt.isoformat() + 'Z'
+  """Turn a timestamp into an ISO formatted string."""
+  dt = datetime.datetime.utcfromtimestamp(timestamp)
+  return f'{dt.isoformat()}Z'
 
 
 def is_production():
@@ -136,15 +136,15 @@ def is_heroku():
 
 
 def version():
-    """Get the version from the Heroku environment variables."""
-    if not is_heroku():
-        return 'DEV'
+  """Get the version from the Heroku environment variables."""
+  if not is_heroku():
+      return 'DEV'
 
-    vrz = os.getenv('HEROKU_RELEASE_CREATED_AT')
-    the_date = datetime.date.fromisoformat(vrz[:10]) if vrz else datetime.date.today()
+  vrz = os.getenv('HEROKU_RELEASE_CREATED_AT')
+  the_date = datetime.date.fromisoformat(vrz[:10]) if vrz else datetime.date.today()
 
-    commit = os.getenv('HEROKU_SLUG_COMMIT', '????')[0:6]
-    return the_date.strftime('%b %d') + f'({commit})'
+  commit = os.getenv('HEROKU_SLUG_COMMIT', '????')[:6]
+  return the_date.strftime('%b %d') + f'({commit})'
 
 def valid_email(s):
     return bool(re.match(r'^(([a-zA-Z0-9_+\.\-]+)@([\da-zA-Z\.\-]+)\.([a-zA-Z\.]{2,6})\s*)$', s))
@@ -152,7 +152,7 @@ def valid_email(s):
 
 @contextlib.contextmanager
 def atomic_write_file(filename, mode='wb'):
-    """Write to a filename atomically.
+  """Write to a filename atomically.
 
     First write to a unique tempfile, then rename the tempfile into
     place. Use as a context manager:
@@ -164,14 +164,12 @@ def atomic_write_file(filename, mode='wb'):
     on Windows. We now just swallow the exception, someone else already wrote the file?)
     """
 
-    tmp_file = f'{filename}.{os.getpid()}'
-    with open(tmp_file, mode) as f:
-        yield f
+  tmp_file = f'{filename}.{os.getpid()}'
+  with open(tmp_file, mode) as f:
+      yield f
 
-    try:
-        os.rename(tmp_file, filename)
-    except IOError:
-        pass
+  with contextlib.suppress(IOError):
+    os.rename(tmp_file, filename)
         
 # This function takes a date in milliseconds from the Unix epoch and transforms it into a printable date
 # It operates by converting the date to a string, removing its last 3 digits, converting it back to an int

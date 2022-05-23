@@ -39,10 +39,13 @@ class Cdn:
             #
             # We still keep on hosting static assets in the "old" location as well for images in
             # emails and content we forgot to replace or are unable to replace (like in Markdowns).
-            self.static_prefix = '/static-' + commit
-            app.add_url_rule(self.static_prefix + '/<path:filename>',
-                    endpoint='cdn_static',
-                    view_func=self._send_static_file)
+            self.static_prefix = f'/static-{commit}'
+            app.add_url_rule(
+                f'{self.static_prefix}/<path:filename>',
+                endpoint='cdn_static',
+                view_func=self._send_static_file,
+            )
+
 
         app.add_template_global(self.static, name='static')
 

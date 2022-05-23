@@ -51,8 +51,7 @@ class DocCollection:
       d = d.setdefault(value, {})
 
     key = self.keys[-1]
-    value = doc.front_matter.get(key, None)
-    if value:
+    if value := doc.front_matter.get(key, None):
       d[value] = doc
 
 class MarkdownDoc:
