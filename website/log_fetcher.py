@@ -103,8 +103,14 @@ class LogFetcher:
 
     def _to_row_response(self, headers, data):
         row = [d.get('VarCharValue') for d in data]
-        return {} if len(row) != len(headers) else \
-            {headers[i]: self._format_if_date(headers[i], row[i]) for i in range(0, len(headers))}
+        return (
+            {}
+            if len(row) != len(headers)
+            else {
+                headers[i]: self._format_if_date(headers[i], row[i])
+                for i in range(len(headers))
+            }
+        )
 
     def _format_if_date(self, header, value):
         return value.split('.')[0] if header == 'date' else value

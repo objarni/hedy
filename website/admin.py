@@ -39,9 +39,14 @@ def routes(app, database):
         language = None if language == "null" else language
         keyword_language = None if keyword_language == "null" else keyword_language
 
-        filtering = False
-        if substring or start_date or end_date or language or keyword_language or category == "all":
-            filtering = True
+        filtering = bool(
+            substring
+            or start_date
+            or end_date
+            or language
+            or keyword_language
+            or category == "all"
+        )
 
         # After hitting 1k users, it'd be wise to add pagination.
         users = DATABASE.all_users(filtering)
@@ -57,23 +62,46 @@ def routes(app, database):
             data['email_verified'] = not bool(data['verification_pending'])
             data['is_teacher'] = bool(data['is_teacher'])
             data['created'] = utils.datetotimeordate (utils.mstoisostring(data['created'])) if data['created'] else '?'
-            if filtering and category == "language":
-                if language != data['language']:
+            if category == "created":
+                if filtering and (
+                    (
+                        start_date
+                        and utils.datetotimeordate(start_date) >= data['created']
+                    )
+                    or (
+                        end_date
+                        and utils.datetotimeordate(end_date) <= data['created']
+                    )
+                ):
                     continue
-            if filtering and category == "keyword_language":
-                if keyword_language != data['keyword_language']:
+            elif category == "email":
+                if filtering and substring not in data['email']:
                     continue
-            if filtering and category == "email":
-                if substring not in data['email']:
+            elif category == "keyword_language":
+                if filtering and keyword_language != data['keyword_language']:
                     continue
-            if filtering and category == "created":
-                if (start_date and utils.datetotimeordate(start_date) >= data['created']) or (end_date and utils.datetotimeordate(end_date) <= data['created']):
+            elif category == "language":
+                if filtering and language != data['language']:
                     continue
             if data['last_login']:
                 data['last_login'] = utils.datetotimeordate(utils.mstoisostring(data['last_login'])) if data['last_login'] else '?'
-                if filtering and category == "last_login":
-                    if (start_date and utils.datetotimeordate(start_date) >= data['last_login']) or (end_date and utils.datetotimeordate(end_date) <= data['last_login']):
-                        continue
+                if (
+                    filtering
+                    and category == "last_login"
+                    and (
+                        (
+                            start_date
+                            and utils.datetotimeordate(start_date)
+                            >= data['last_login']
+                        )
+                        or (
+                            end_date
+                            and utils.datetotimeordate(end_date)
+                            <= data['last_login']
+                        )
+                    )
+                ):
+                    continue
             userdata.append(data)
 
         return render_template('admin/admin-users.html', users=userdata, page_title=gettext('title_admin'),
@@ -120,9 +148,13 @@ def routes(app, database):
     @app.route('/admin/stats', methods=['GET'])
     @requires_login
     def get_admin_stats_page(user):
-        if not is_admin(user):
-            return utils.error_page(error=403, ui_message=gettext('unauthorized'))
-        return render_template('admin/admin-stats.html', page_title=gettext('title_admin'))
+        return (
+            render_template(
+                'admin/admin-stats.html', page_title=gettext('title_admin')
+            )
+            if is_admin(user)
+            else utils.error_page(error=403, ui_message=gettext('unauthorized'))
+        )
 
     @app.route('/admin/achievements', methods=['GET'])
     @requires_login
@@ -133,8 +165,7 @@ def routes(app, database):
         stats = {}
         achievements = hedyweb.AchievementTranslations().get_translations("en").get("achievements")
         for achievement in achievements.keys():
-            stats[achievement] = {}
-            stats[achievement]["name"] = achievements.get(achievement).get("title")
+            stats[achievement] = {"name": achievements.get(achievement).get("title")}
             stats[achievement]["description"] = achievements.get(achievement).get("text")
             stats[achievement]["count"] = 0
 

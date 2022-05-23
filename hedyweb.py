@@ -33,7 +33,7 @@ class PageTranslations:
         if page in ['start', 'learn-more', 'for-teachers']:
             translations = glob.glob('content/pages/*.yaml')
         else:
-            translations = glob.glob('content/pages/' + page + '/*.yaml')
+            translations = glob.glob(f'content/pages/{page}/*.yaml')
         for file in translations:
             lang = path.splitext(path.basename(file))[0]
             self.data[lang] = YamlFile.for_file(file)
@@ -51,56 +51,57 @@ class PageTranslations:
 
 def render_code_editor_with_tabs(commands, max_level, level_number, version, quiz, loaded_program, adventures, parsons, customizations, hide_cheatsheet, enforce_developers_mode, teacher_adventures, adventure_name):
 
-    arguments_dict = {}
+    arguments_dict = {
+        'level_nr': str(level_number),
+        'level': level_number,
+        'current_page': 'hedy',
+        'prev_level': int(level_number) - 1 if int(level_number) > 1 else None,
+        'next_level': int(level_number) + 1
+        if int(level_number) < max_level
+        else None,
+        'customizations': customizations,
+        'hide_cheatsheet': hide_cheatsheet,
+        'enforce_developers_mode': enforce_developers_mode,
+        'teacher_adventures': teacher_adventures,
+        'loaded_program': loaded_program,
+        'adventures': adventures,
+        'parsons': parsons,
+        'adventure_name': adventure_name,
+        'latest': version,
+        'quiz': quiz,
+    }
 
-    # Meta stuff
-    arguments_dict['level_nr'] = str(level_number)
-    arguments_dict['level'] = level_number
-    arguments_dict['current_page'] = 'hedy'
-    arguments_dict['prev_level'] = int(
-        level_number) - 1 if int(level_number) > 1 else None
-    arguments_dict['next_level'] = int(
-        level_number) + 1 if int(level_number) < max_level else None
-    arguments_dict['customizations'] = customizations
-    arguments_dict['hide_cheatsheet'] = hide_cheatsheet
-    arguments_dict['enforce_developers_mode'] = enforce_developers_mode
-    arguments_dict['teacher_adventures'] = teacher_adventures
-    arguments_dict['loaded_program'] = loaded_program
-    arguments_dict['adventures'] = adventures
-    arguments_dict['parsons'] = parsons
-    arguments_dict['adventure_name'] = adventure_name
-    arguments_dict['latest'] = version
-    arguments_dict['quiz'] = quiz
 
     return render_template("code-page.html", **arguments_dict, commands=commands)
 
 
 def render_tutorial_mode(level, commands, adventures):
-    arguments_dict = {}
+    arguments_dict = {
+        'tutorial': True,
+        'next_level': 2,
+        'level_nr': str(level),
+        'level': str(level),
+        'adventures': adventures,
+        'quiz': True,
+    }
 
-    arguments_dict['tutorial'] = True
-    arguments_dict['next_level'] = 2
-    arguments_dict['level_nr'] = str(level)
-    arguments_dict['level'] = str(level)
-    arguments_dict['adventures'] = adventures
-    arguments_dict['quiz'] = True
 
     return render_template("code-page.html", **arguments_dict, commands=commands)
 
 def render_specific_adventure(level_number, adventure, version, prev_level, next_level):
-    arguments_dict = {}
+    arguments_dict = {
+        'specific_adventure': True,
+        'level_nr': str(level_number),
+        'level': level_number,
+        'prev_level': prev_level,
+        'next_level': next_level,
+        'customizations': [],
+        'hide_cheatsheet': None,
+        'enforce_developers_mode': None,
+        'teacher_adventures': [],
+        'adventures': adventure,
+        'latest': version,
+    }
 
-    # Meta stuff
-    arguments_dict['specific_adventure'] = True
-    arguments_dict['level_nr'] = str(level_number)
-    arguments_dict['level'] = level_number
-    arguments_dict['prev_level'] = prev_level
-    arguments_dict['next_level'] = next_level
-    arguments_dict['customizations'] = []
-    arguments_dict['hide_cheatsheet'] = None
-    arguments_dict['enforce_developers_mode'] = None
-    arguments_dict['teacher_adventures'] = []
-    arguments_dict['adventures'] = adventure
-    arguments_dict['latest'] = version
 
     return render_template("code-page.html", **arguments_dict)

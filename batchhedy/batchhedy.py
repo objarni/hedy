@@ -79,34 +79,32 @@ def run(filenames, report, top, check = None, ):
         print(f"Number of error files:  {number_of_error_programs} ({100*number_of_error_programs/len(jobs):3f}) ")
 
 def create_jobs(filenames):
-    """ The list of jobs to be run """
-    # Create object list
-    jobs = [TranspileJob(f) for f in filenames]
+        """ The list of jobs to be run """
+        # Create object list
+        jobs = [TranspileJob(f) for f in filenames]
 
-    # Remove files with invalid level
-    invalidjob = [j for j in jobs if j.level > hedy.HEDY_MAX_LEVEL]
-    if len(invalidjob) > 0:
-        print(f"WARNING: There are {len(invalidjob)} files with"
-              f" invalid Hedy level (> {hedy.HEDY_MAX_LEVEL})")
-        jobs = [j for j in jobs if j.level <= hedy.HEDY_MAX_LEVEL]
+        if invalidjob := [j for j in jobs if j.level > hedy.HEDY_MAX_LEVEL]:
+                print(f"WARNING: There are {len(invalidjob)} files with"
+                      f" invalid Hedy level (> {hedy.HEDY_MAX_LEVEL})")
+                jobs = [j for j in jobs if j.level <= hedy.HEDY_MAX_LEVEL]
 
-    return jobs
+        return jobs
 
 def create_checkdata(check):
-    """ Data of a previous run. Return None is self.check is not set."""
-    if check is None:
-        return None
+        """ Data of a previous run. Return None is self.check is not set."""
+        if check is None:
+            return None
 
-    comparedata = {}
-    with open(check, newline="", encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile)
-        fields = None
-        for row in reader:
-            if fields is None:
-                fields = row
-            else:
-                comparedata[row[0]] = ({k: v for k, v in zip(fields, row)})
-    return comparedata
+        comparedata = {}
+        with open(check, newline="", encoding='utf-8') as csvfile:
+                reader = csv.reader(csvfile)
+                fields = None
+                for row in reader:
+                        if fields is None:
+                                fields = row
+                        else:
+                                comparedata[row[0]] = dict(zip(fields, row))
+        return comparedata
 
 
 
@@ -209,22 +207,22 @@ class TranspileJob:
 
 
 def extract_level_from_code(code: str) -> Tuple[int, str]:
-    """ Return a (level, code) tuple of the level and the code without the
+        """ Return a (level, code) tuple of the level and the code without the
     level line. Return None for the level if it not found. """
-    newline = code.find("\n")
-    firstline = code[0:newline].strip().lower()
-    if firstline[0] == "#":   # expecting level X or level = X
-        idx = firstline.find("level")
-        if idx > -1:  # string found
-            try:
-                if firstline.find("=") > -1:
-                    level = int(firstline.split("=")[-1])
-                else:
-                    level = int(firstline[idx+5:])
-                return level, code[newline+1:]
-            except ValueError:
-                pass
-    return None, code
+        newline = code.find("\n")
+        firstline = code[:newline].strip().lower()
+        if firstline[0] == "#":   # expecting level X or level = X
+            idx = firstline.find("level")
+            if idx > -1:  # string found
+                try:
+                    if firstline.find("=") > -1:
+                        level = int(firstline.split("=")[-1])
+                    else:
+                        level = int(firstline[idx+5:])
+                    return level, code[newline+1:]
+                except ValueError:
+                    pass
+        return None, code
 
 def is_empty(program):
     all_lines = program.split('\n')

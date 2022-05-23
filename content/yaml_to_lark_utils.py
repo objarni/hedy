@@ -20,10 +20,10 @@ def extract_Lark_grammar_from_yaml(only_new_lang=True):
   lark_languages = [f.replace('keywords-', '').replace('.lark', '') for f in os.listdir(current_grammar_path) if
                     os.path.isfile(os.path.join(current_grammar_path, f)) and f.startswith('keywords')]
 
-  new_languages = [l for l in yaml_languages if not l in lark_languages]
+  new_languages = [l for l in yaml_languages if l not in lark_languages]
 
   for yaml_lang in new_languages:
-    yaml_filesname_with_path = os.path.join(input_path, yaml_lang + '.yaml')
+    yaml_filesname_with_path = os.path.join(input_path, f'{yaml_lang}.yaml')
     default_yaml_with_path = os.path.join(input_path, 'en' + '.yaml')
 
     with open(default_yaml_with_path, 'r', encoding='utf-8') as stream:
@@ -32,17 +32,18 @@ def extract_Lark_grammar_from_yaml(only_new_lang=True):
     with open(yaml_filesname_with_path, 'r', encoding='utf-8') as stream:
       command_combinations = yaml.safe_load(stream)
 
-    lark_filesname_with_path = os.path.join(output_path, 'keywords-' + yaml_lang + '.lark')
+    lark_filesname_with_path = os.path.join(output_path,
+                                            f'keywords-{yaml_lang}.lark')
 
     with open(lark_filesname_with_path, 'w+', encoding='utf-8') as f:
       list_of_translations = []
-      
+
       for command, translation in command_combinations.items():   
         en_translation = en_command_combinations[command]
-        
+
         if translation == '':
           translation = en_translation
-          
+
         if yaml_lang != 'en':
           if translation in list_of_translations:
             print(f'Warning! {translation} is a duplicate translation. This is not desired when creating lark files')
@@ -56,8 +57,8 @@ def extract_Lark_grammar_from_yaml(only_new_lang=True):
           # random, left and right and colors are tokens and need to be printed as they are
           # other rules need to be UPPERCASE and start with _
           if command not in lowercase_commands:
-              command_upper = command.upper()
-              command = '_' + command_upper
+            command_upper = command.upper()
+            command = f'_{command_upper}'
 
           # something to add to all lines to modify rules
           ending = "_SPACE?"

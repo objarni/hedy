@@ -58,12 +58,12 @@ for folder in os.listdir('translations'):
 
 for l in sorted(languages):
     ALL_LANGUAGES[l] = languages[l]
-    if os.path.exists('./grammars/keywords-' + l + '.lark'):
-        ALL_KEYWORD_LANGUAGES[l] = l[0:2].upper()  # first two characters
+    if os.path.exists(f'./grammars/keywords-{l}.lark'):
+        ALL_KEYWORD_LANGUAGES[l] = l[:2].upper()
 
 # Load and cache all keyword yamls
 KEYWORDS = {}
-for lang in ALL_KEYWORD_LANGUAGES.keys():
+for lang in ALL_KEYWORD_LANGUAGES:
     KEYWORDS[lang] = dict(YamlFile.for_file(f'content/keywords/{lang}.yaml'))
     for k, v in KEYWORDS[lang].items():
         if type(v) == str and "|" in v:
@@ -142,10 +142,12 @@ class Adventures:
 
     def cache_adventure_keywords(self, language):
         # Sort the adventure to a fixed structure to make sure they are structured the same for each language
-        sorted_adventures = {}
-        for adventure_index in ADVENTURE_ORDER:
-            if self.file.get(adventure_index, None):
-                sorted_adventures[adventure_index] = (self.file.get(adventure_index))
+        sorted_adventures = {
+            adventure_index: (self.file.get(adventure_index))
+            for adventure_index in ADVENTURE_ORDER
+            if self.file.get(adventure_index, None)
+        }
+
         self.file = sorted_adventures
         keyword_data = {}
         for short_name, adventure in self.file.items():
@@ -171,10 +173,12 @@ class Adventures:
                 self.file = YamlFile.for_file(
                     f'content/adventures/{self.language}.yaml').get('adventures')
             self.data["en"] = self.cache_adventure_keywords("en")
-        adventures_dict = {}
-        for adventure in self.data["en"].items():
-            adventures_dict[adventure[0]] = {adventure[1]['name']: list(adventure[1]['levels'].keys())}
-        return adventures_dict
+        return {
+            adventure[0]: {
+                adventure[1]['name']: list(adventure[1]['levels'].keys())
+            }
+            for adventure in self.data["en"].items()
+        }
 
     # Todo TB -> We can also cache this; why not?
     # When filtering on the /explore or /programs page we only want the actual names
@@ -184,10 +188,10 @@ class Adventures:
                 self.file = YamlFile.for_file(
                     f'content/adventures/{self.language}.yaml').get('adventures')
             self.data["en"] = self.cache_adventure_keywords("en")
-        adventures_dict = {}
-        for adventure in self.data["en"].items():
-            adventures_dict[adventure[0]] = adventure[1]['name']
-        return adventures_dict
+        return {
+            adventure[0]: adventure[1]['name']
+            for adventure in self.data["en"].items()
+        }
 
     def get_adventures(self, keyword_lang="en"):
         if self.debug_mode and not self.data.get(keyword_lang, None):
@@ -204,7 +208,7 @@ class Adventures:
                 self.file = YamlFile.for_file(
                     f'content/adventures/{self.language}.yaml').get('adventures')
             self.data["en"] = self.cache_adventure_keywords("en")
-        return True if self.data.get("en") else False     
+        return bool(self.data.get("en"))     
       
 # Todo TB -> We don't need these anymore as we guarantee with Weblate that each language file is there
 class NoSuchAdventure:
@@ -279,9 +283,11 @@ class Quizzes:
                     if k == "mp_choice_options":
                         options = []
                         for option in copy.deepcopy(v):
-                            temp = {}
-                            for key, value in option.items():
-                                temp[key] = value.format(**KEYWORDS.get(language))
+                            temp = {
+                                key: value.format(**KEYWORDS.get(language))
+                                for key, value in option.items()
+                            }
+
                             options.append(temp)
                         questions[number][k] = options
                     else:

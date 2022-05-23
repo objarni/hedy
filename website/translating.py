@@ -59,7 +59,7 @@ def struct_to_sections(struct1, struct2):
       for i, el in enumerate(x):
         if not isinstance(el, str):
           strings.append(TranslatableSection(str(i + 1)))
-        recurse(el, y[i] if i < len(y) else None, path + ['a:' + str(i)])
+        recurse(el, y[i] if i < len(y) else None, path + [f'a:{str(i)}'])
       return
 
     if isinstance(x, dict):
@@ -119,10 +119,9 @@ def value_at(data, path):
       if not isinstance(data, list): return None
       if len(data) <= index: return None
       data = data[index]
-    else:
-      # Expecting to index into a dict (but the index could still be a number)
-      if not isinstance(data, dict): return None
+    elif isinstance(data, dict):
       data = data.get(p, None)
+    else: return None
   return data
 
 
@@ -149,7 +148,6 @@ def normalize_yaml_blocks(data):
   if isinstance(data, list):
     for i, el in enumerate(data):
       if isinstance(el, str):
-        pass
         data[i] = maybe_translate_to_block(el)
       else:
         normalize_yaml_blocks(el)
@@ -158,7 +156,6 @@ def normalize_yaml_blocks(data):
   if isinstance(data, dict):
     for key, value in list(data.items()):
       if isinstance(value, str):
-        pass
         data[key] = maybe_translate_to_block(value)
       else:
         normalize_yaml_blocks(value)

@@ -171,43 +171,40 @@ class Table:
 
         Returns the delete item.
         """
-        querylog.log_counter('db_del:' + self.table_name)
+        querylog.log_counter(f'db_del:{self.table_name}')
         self._validate_key(key)
 
         return self.storage.delete(self.table_name, key)
 
     @querylog.timed_as('db_del_many')
-    def del_many (self, key):
+    def del_many(self, key):
         """Delete all items matching a key.
 
         DynamoDB does not support this operation natively, so we have to turn
         it into a fetch+batch delete (and since our N is small, we do
         repeated "single" deletes instead of doing a proper batch delete).
         """
-        querylog.log_counter('db_del_many:' + self.table_name)
+        querylog.log_counter(f'db_del_many:{self.table_name}')
 
-        # The result of get_many is paged, so we might need to do this more than once.
-        to_delete = self.get_many(key)
-        while to_delete:
+        while to_delete := self.get_many(key):
             for item in to_delete:
                 key = self._extract_key(item)
                 self.delete(key)
-            to_delete = self.get_many(key)
 
     @querylog.timed_as('db_scan')
     def scan(self, limit=None, pagination_token=None):
         """Reads the entire table into memory."""
-        querylog.log_counter('db_scan:' + self.table_name)
+        querylog.log_counter(f'db_scan:{self.table_name}')
         items, next_page_token = self.storage.scan(self.table_name, limit=limit, pagination_token=decode_page_token(pagination_token))
         return ResultPage(items, encode_page_token(next_page_token))
 
     @querylog.timed_as('db_describe')
     def item_count(self):
-        querylog.log_counter('db_describe:' + self.table_name)
+        querylog.log_counter(f'db_describe:{self.table_name}')
         return self.storage.item_count(self.table_name)
 
     def _determine_lookup(self, key_data, many):
-        if any(not v for v in key_data.values()):
+        if not all(key_data.values()):
             raise ValueError(f'Key data cannot have empty values: {key_data}')
 
         keys = set(key_data.keys())
@@ -252,12 +249,12 @@ class Table:
         return { k: data[k] for k in self._key_names() }
 
     def _key_names(self):
-        return set(x for x in [self.partition_key, self.sort_key] if x is not None)
+        return {x for x in [self.partition_key, self.sort_key] if x is not None}
 
     def _validate_key(self, key):
         if key.keys() != self._key_names():
             raise RuntimeError(f'key fields incorrect: {key} != {self._key_names()}')
-        if any(not v for v in key.values()):
+        if not all(key.values()):
             raise RuntimeError(f'key fields cannot be empty: {key}')
 
 DDB_SERIALIZER = TypeSerializer()
@@ -330,9 +327,9 @@ class AwsDynamoStorage(TableStorage):
 
         attr_values = {f':{field}': DDB_SERIALIZER.serialize(key[field]) for field in eq_conditions.keys()}
         for field, cond in special_conditions.items():
-            attr_values.update(cond.to_dynamo_values(field))
+            attr_values |= cond.to_dynamo_values(field)
 
-        attr_names = {'#' + field: field for field in key.keys()}
+        attr_names = {f'#{field}': field for field in key.keys()}
 
         return key_expression, attr_values, attr_names
 
@@ -564,10 +561,9 @@ class MemoryStorage(TableStorage):
         return items, next_page_token
 
     def _find_index(self, records, key):
-        for i, v in enumerate(records):
-            if self._eq_matches(v, key):
-                return i
-        return None
+        return next(
+            (i for i, v in enumerate(records) if self._eq_matches(v, key)), None
+        )
 
     def _eq_matches(self, record, key):
         return all(record.get(k) == v for k, v in key.items())
@@ -736,10 +732,7 @@ def replace_decimals(obj):
             obj[k] = replace_decimals(obj[k])
         return obj
     elif isinstance(obj, decimal.Decimal):
-        if obj % 1 == 0:
-            return int(obj)
-        else:
-            return float(obj)
+        return int(obj) if obj % 1 == 0 else float(obj)
     else:
         return obj
 
@@ -755,9 +748,7 @@ class CustomEncoder(json.JSONEncoder):
     @staticmethod
     def decode_object(obj):
         """The decoding for the encoding above."""
-        if obj.get('$type') == 'set':
-            return set(obj['elements'])
-        return obj
+        return set(obj['elements']) if obj.get('$type') == 'set' else obj
 
 
 def validate_only_sort_key(conds, sort_key):
@@ -768,14 +759,12 @@ def validate_only_sort_key(conds, sort_key):
 
 def encode_page_token(x):
     """Encode a compound key page token (dict) to a string."""
-    if x is None: return None
-    return base64.b64encode(json.dumps(x).encode('utf-8'))
+    return None if x is None else base64.b64encode(json.dumps(x).encode('utf-8'))
 
 
 def decode_page_token(x):
     """Decode string page token to compound key (dict)."""
-    if x is None: return None
-    return json.loads(base64.b64decode(x).decode('utf-8'))
+    return None if x is None else json.loads(base64.b64decode(x).decode('utf-8'))
 
 
 def notnone(**kwargs):

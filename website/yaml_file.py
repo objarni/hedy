@@ -62,9 +62,7 @@ class YamlFile:
         where dicts are expected (except if the file doesn't exist, then accessing it will throw; we
         can consider changing that behavior to always return an empty dict).
         """
-        if self.exists():
-            return self.access()
-        return {}
+        return self.access() if self.exists() else {}
 
     def access(self):
         """Access the data from memory.

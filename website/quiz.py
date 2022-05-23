@@ -368,7 +368,7 @@ def question_options_for(question):
 
 def get_correctly_answered_question_nrs():
     if 'correctly_answered_questions_numbers' not in session:
-        session['correctly_answered_questions_numbers'] = list()
+        session['correctly_answered_questions_numbers'] = []
     return session['correctly_answered_questions_numbers']
 
 

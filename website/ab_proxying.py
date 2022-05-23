@@ -24,21 +24,19 @@ class ABProxying:
         # If it is an auth route, we do not reverse proxy it to the PROXY_TO_TEST_HOST environment
         # We want to keep all cookie setting in the main environment, not the test one.
         if re.match ('.*/auth/.*', request.url):
+            return
+        if re.match ('.*/session_main', request.url):
             pass
-        # This route is meant to return the session from the main environment, for testing purposes.
-        elif re.match ('.*/session_main', request.url):
-            pass
-        # If we enter this block, we will reverse proxy the request to the PROXY_TO_TEST_HOST environment.
-        # /session_test is meant to return the session from the test environment, for testing purposes.
         elif re.match ('.*/session_test', request.url) or redirect_ab (request):
             url = self.target_host + request.full_path
             logging.debug('Proxying %s %s %s to %s', request.method, request.url, dict (session), url)
 
-            request_headers = {}
-            for header in request.headers:
-                if (header [0].lower () in ['host']):
-                    continue
-                request_headers [header [0]] = header [1]
+            request_headers = {
+                header[0]: header[1]
+                for header in request.headers
+                if header[0].lower() not in ['host']
+            }
+
             # In case the session_id is not yet set in the cookie, pass it in a special header
             request_headers ['X-session_id'] = session ['session_id']
 
@@ -60,7 +58,7 @@ class ABProxying:
             return response, r.status_code
 
 
-def redirect_ab (request):
+def redirect_ab(request):
     # If this is a testing request, we return True
     if utils.is_testing_request (request):
         return True
@@ -69,8 +67,7 @@ def redirect_ab (request):
 
     # This will send either % PROXY_TO_TEST_PROPORTION of the requests into redirect, or 50% if that variable is not specified.
     redirect_proportion = int (os.getenv ('PROXY_TO_TEST_PROPORTION', '50'))
-    redirect_flag = (hash_user_or_session (user_identifier) % 100) < redirect_proportion
-    return redirect_flag
+    return (hash_user_or_session (user_identifier) % 100) < redirect_proportion
 
 
 def hash_user_or_session (string):
@@ -80,9 +77,9 @@ def hash_user_or_session (string):
 
 # Used by A/B testing to extract a session from a set-cookie header.
 # The signature is ignored. The source of the session should be trusted.
-def extract_session_from_cookie (cookie_header, secret_key):
+def extract_session_from_cookie(cookie_header, secret_key):
     parsed_cookie = SimpleCookie (cookie_header)
-    if not 'session' in parsed_cookie:
+    if 'session' not in parsed_cookie:
         return {}
 
     cookie_interface = flask.sessions.SecureCookieSessionInterface()

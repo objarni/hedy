@@ -74,9 +74,10 @@ def routes(app, database, achievements):
             return 'level must be an integer', 400
         if not isinstance(body.get('shared'), bool):
             return 'shared must be a boolean', 400
-        if 'adventure_name' in body:
-            if not isinstance(body.get('adventure_name'), str):
-                return 'if present, adventure_name must be a string', 400
+        if 'adventure_name' in body and not isinstance(
+            body.get('adventure_name'), str
+        ):
+            return 'if present, adventure_name must be a string', 400
 
         error = False
         try:
@@ -155,11 +156,13 @@ def routes(app, database, achievements):
         DATABASE.set_program_public_by_id(body['id'], bool(body['public']))
         achievement = ACHIEVEMENTS.add_single_achievement(user['username'], "sharing_is_caring")
 
-        resp = {'id': body['id']}
-        if bool(body['public']):
-            resp['message'] = gettext('share_success_detail')
-        else:
-            resp['message'] = gettext('unshare_success_detail')
+        resp = {
+            'id': body['id'],
+            'message': gettext('share_success_detail')
+            if bool(body['public'])
+            else gettext('unshare_success_detail'),
+        }
+
         if achievement:
             resp['achievement'] = achievement
         return jsonify(resp)
@@ -216,7 +219,7 @@ def routes(app, database, achievements):
         if not isinstance(body.get('favourite'), int):
             return 'favourite must be a integer', 400
 
-        favourite = True if body.get('favourite') == 1 else False
+        favourite = body.get('favourite') == 1
 
         result = DATABASE.program_by_id(body['id'])
         if not result:

@@ -70,14 +70,7 @@ class HedyTester(unittest.TestCase):
 
   @staticmethod
   def as_list_of_tuples(*args):
-    # used to conver a variable number of paralel list
-    # into a list of tuples to be used by the parametrized tester
-    # All of the lists need to have the same size
-    res = []
-    for i in range(len(args[0])):
-      t = tuple((item[i] for item in args))
-      res.append(t)
-    return res
+    return [tuple((item[i] for item in args)) for i in range(len(args[0]))]
 
   def codeToInvalidInfo(self, code):
     instance = hedy.IsValid()
@@ -143,7 +136,7 @@ class HedyTester(unittest.TestCase):
       all_commands = hedy.all_commands(code, level, lang)
       if expected_commands is not None:
         self.assertEqual(expected_commands, all_commands)
-      if (not 'ask' in all_commands) and (not 'input' in all_commands): #<- use this to run tests locally with unittest
+      if 'ask' not in all_commands and 'input' not in all_commands: #<- use this to run tests locally with unittest
         self.assertTrue(self.validate_Python_code(result))
       if output is not None:
         self.assertEqual(output, HedyTester.run_code(result))
@@ -163,7 +156,8 @@ class HedyTester(unittest.TestCase):
         result = hedy.transpile(snippet.code, int(snippet.level), snippet.language)
         all_commands = hedy.all_commands(snippet.code, snippet.level, snippet.language)
 
-        if not result.has_turtle and (not 'ask' in all_commands) and (not 'input' in all_commands): #output from turtle cannot be captured
+        if (not result.has_turtle and 'ask' not in all_commands
+            and 'input' not in all_commands): #output from turtle cannot be captured
           output = HedyTester.run_code(result)
     except hedy.exceptions.CodePlaceholdersPresentException as E: # Code with blanks is allowed
       pass

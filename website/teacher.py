@@ -23,9 +23,13 @@ def routes(app, database, achievements):
     @app.route('/classes', methods=['GET'])
     @requires_login
     def get_classes(user):
-        if not is_teacher(user):
-            return utils.error_page_403(error=403, ui_message=gettext('retrieve_class_error'))
-        return jsonify (DATABASE.get_teacher_classes(user['username'], True))
+        return (
+            jsonify(DATABASE.get_teacher_classes(user['username'], True))
+            if is_teacher(user)
+            else utils.error_page_403(
+                error=403, ui_message=gettext('retrieve_class_error')
+            )
+        )
 
     @app.route('/for-teachers/class/<class_id>', methods=['GET'])
     @requires_login
@@ -41,9 +45,12 @@ def routes(app, database, achievements):
             student = DATABASE.user_by_username(student_username)
             programs = DATABASE.programs_for_user(student_username)
             highest_level = max(program['level'] for program in programs) if len(programs) else 0
-            sorted_public_programs = list(
-                sorted([program for program in programs if program.get('public')], key=lambda p: p['date']))
-            if sorted_public_programs:
+            if sorted_public_programs := list(
+                sorted(
+                    [program for program in programs if program.get('public')],
+                    key=lambda p: p['date'],
+                )
+            ):
                 latest_shared = sorted_public_programs[-1]
                 latest_shared['link'] = f"/hedy/{latest_shared['id']}/view"
             else:
@@ -65,11 +72,14 @@ def routes(app, database, achievements):
         if achievement:
             achievement = json.dumps(achievement)
 
-        invites = []
-        for invite in DATABASE.get_class_invites(Class['id']):
-            invites.append({'username': invite['username'],
-                            'timestamp': utils.stoisostring(invite['timestamp']),
-                            'expire_timestamp': utils.stoisostring(invite['ttl'])})
+        invites = [
+            {
+                'username': invite['username'],
+                'timestamp': utils.stoisostring(invite['timestamp']),
+                'expire_timestamp': utils.stoisostring(invite['ttl']),
+            }
+            for invite in DATABASE.get_class_invites(Class['id'])
+        ]
 
         return render_template('class-overview.html', current_page='my-profile',
                                 page_title=gettext('title_class-overview'),
@@ -107,8 +117,9 @@ def routes(app, database, achievements):
         }
 
         DATABASE.store_class(Class)
-        achievement = ACHIEVEMENTS.add_single_achievement(user['username'], "ready_set_education")
-        if achievement:
+        if achievement := ACHIEVEMENTS.add_single_achievement(
+            user['username'], "ready_set_education"
+        ):
             return {'id': Class['id'], 'achievement': achievement}, 200
         return {'id': Class['id']}, 200
 
@@ -138,8 +149,9 @@ def routes(app, database, achievements):
                 return "duplicate", 200
 
         DATABASE.update_class(class_id, body['name'])
-        achievement = ACHIEVEMENTS.add_single_achievement(user['username'], "on_second_thoughts")
-        if achievement:
+        if achievement := ACHIEVEMENTS.add_single_achievement(
+            user['username'], "on_second_thoughts"
+        ):
             return {'achievement': achievement}, 200
         return {}, 200
 
@@ -151,8 +163,9 @@ def routes(app, database, achievements):
             return gettext('no_such_class'), 404
 
         DATABASE.delete_class(Class)
-        achievement = ACHIEVEMENTS.add_single_achievement(user['username'], "end_of_semester")
-        if achievement:
+        if achievement := ACHIEVEMENTS.add_single_achievement(
+            user['username'], "end_of_semester"
+        ):
             return {'achievement': achievement}, 200
         return {}, 200
 
@@ -172,9 +185,7 @@ def routes(app, database, achievements):
     @app.route('/class/join', methods=['POST'])
     def join_class():
         body = request.json
-        Class = None
-        if 'id' in body:
-            Class = DATABASE.get_class(body['id'])
+        Class = DATABASE.get_class(body['id']) if 'id' in body else None
         if not Class or Class['id'] != body['id']:
             return utils.error_page(error=404, ui_message=gettext('invalid_class_link'))
 
@@ -183,8 +194,9 @@ def routes(app, database, achievements):
 
         DATABASE.add_student_to_class(Class['id'], current_user()['username'])
         DATABASE.remove_class_invite(current_user()['username'])
-        achievement = ACHIEVEMENTS.add_single_achievement(current_user()['username'], "epic_education")
-        if achievement:
+        if achievement := ACHIEVEMENTS.add_single_achievement(
+            current_user()['username'], "epic_education"
+        ):
             return {'achievement': achievement}, 200
         return {}, 200
 
@@ -274,9 +286,10 @@ def routes(app, database, achievements):
                 except:
                     return 'One or more of your opening dates is invalid', 400
 
-        adventures = {}
-        for name, adventure_levels in body['adventures'].items():
-            adventures[name] = [int(i) for i in adventure_levels]
+        adventures = {
+            name: [int(i) for i in adventure_levels]
+            for name, adventure_levels in body['adventures'].items()
+        }
 
         customizations = {
             'id': class_id,
@@ -384,8 +397,7 @@ def routes(app, database, achievements):
 
         # Validation for correct types and duplicates
         for account in body.get('accounts', []):
-            validation = validate_student_signup_data(account)
-            if validation:
+            if validation := validate_student_signup_data(account):
                 return validation, 400
             if account.get('username').strip().lower() in usernames:
                 return {'error': gettext('unique_usernames'), 'value': account.get('username')}, 200
@@ -530,4 +542,10 @@ def routes(app, database, achievements):
         Class = DATABASE.resolve_class_link(link_id)
         if not Class:
             return utils.error_page(error=404, ui_message=gettext('invalid_class_link'))
-        return redirect(request.url.replace('/hedy/l/' + link_id, '/class/' + Class ['id'] + '/prejoin/' + link_id), code=302)
+        return redirect(
+            request.url.replace(
+                f'/hedy/l/{link_id}',
+                '/class/' + Class['id'] + '/prejoin/' + link_id,
+            ),
+            code=302,
+        )

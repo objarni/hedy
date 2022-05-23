@@ -218,7 +218,7 @@ class TestsLevel4(HedyTester):
         self.multi_level_tester(code=code, expected=expected, max_level=11)
 
     def test_ask_double_quoted_text_with_inner_single_quote(self):
-        code = f'''details is ask "say 'no'"'''
+        code = '''details is ask "say 'no'"'''
         expected = '''details = input(f'say \\'no\\'')'''
 
         self.multi_level_tester(code=code, expected=expected, max_level=11)
@@ -260,7 +260,7 @@ class TestsLevel4(HedyTester):
     @parameterized.expand(HedyTester.quotes)
     def test_ask_es(self, q):
         code = f"""color is ask {q}Cuál es tu color favorito?{q}"""
-        expected = f"""color = input(f'Cuál es tu color favorito?')"""
+        expected = """color = input(f'Cuál es tu color favorito?')"""
 
         self.multi_level_tester(code=code, expected=expected, max_level=11)
 

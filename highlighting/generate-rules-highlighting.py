@@ -69,7 +69,7 @@ def get_traduction(KEYWORDS_PATH, KEYWORDS_PATTERN):
     list_language_file = os.listdir(KEYWORDS_PATH)
 
     for language_file in list_language_file:
-        language_code = re.search(KEYWORDS_PATTERN,language_file).group(1)
+        language_code = re.search(KEYWORDS_PATTERN,language_file)[1]
 
         keywords_file = open(os.path.join(KEYWORDS_PATH, language_file), newline="", encoding='utf-8')
 
@@ -83,12 +83,12 @@ def get_traduction(KEYWORDS_PATH, KEYWORDS_PATTERN):
     for language_code in sorted(tmp.keys()):
         result[language_code] = {}
         if language_code == "en":
-           for keyword in sorted(tmp[language_code].keys()) :
-               result[language_code][keyword] = "({})".format(tmp['en'][keyword])
+            for keyword in sorted(tmp[language_code].keys()):
+                result[language_code][keyword] = f"({tmp['en'][keyword]})"
         else:
-           for keyword in tmp[language_code] :
+            for keyword in tmp[language_code]:
                 word = tmp[language_code][keyword]
-                if word != tmp['en'][keyword] :
+                if word != tmp['en'][keyword]:
 
                     # special case for arabic 'underscore'
                     if language_code == "ar":
@@ -96,25 +96,23 @@ def get_traduction(KEYWORDS_PATH, KEYWORDS_PATTERN):
                         word = ch + ch.join(list(word)) + ch
 
 
-                    result[language_code][keyword] = "({}|{})".format(word, tmp['en'][keyword])
+                    result[language_code][keyword] = f"({word}|{tmp['en'][keyword]})"
                 else:
-                    result[language_code][keyword] = "({})".format(tmp['en'][keyword])
+                    result[language_code][keyword] = f"({tmp['en'][keyword]})"
 
 
     return result
 
 
 
-os.chdir(os.path.dirname(__file__) +"/..")
+os.chdir(f"{os.path.dirname(__file__)}/..")
 
 
 
 print("Generation of traductions.....................", end="")
 language_keywords = get_traduction(KEYWORDS_PATH,KEYWORDS_PATTERN)
-# Saving the rules in the corresponding file
-file_lang = open(OUTPUT_PATH_TRADUCTION,"w")
-file_lang.write(json.dumps(language_keywords,indent=4))
-file_lang.close()
+with open(OUTPUT_PATH_TRADUCTION,"w") as file_lang:
+    file_lang.write(json.dumps(language_keywords,indent=4))
 print(" Done !")
 
 
@@ -126,10 +124,7 @@ levels = generate_rules()
 
 validate_ruleset(levels)
 
-# Saving the rules in the corresponding file
-file_syntax = open(OUTPUT_PATH_HIGHLIGHT,"w")
-file_syntax.write(json.dumps(levels,indent=4))
-file_syntax.close()
-
+with open(OUTPUT_PATH_HIGHLIGHT,"w") as file_syntax:
+    file_syntax.write(json.dumps(levels,indent=4))
 print(" Done !")
 
